@@ -18,12 +18,12 @@ parse_uri(){
   echo $uri | sed -r "s/${uri_regex}/\\${part_num}/"
 }
 
-#export DATABASE_URL_SCHEME=`parse_uri ${DATABASE_URL} scheme`
-#export DATABASE_URL_USERNAME=`parse_uri ${DATABASE_URL} username`
-#export DATABASE_URL_PASSWORD=`parse_uri ${DATABASE_URL} password`
-#export DATABASE_URL_HOST=`parse_uri ${DATABASE_URL} host`
-#export DATABASE_URL_PATH=`parse_uri ${DATABASE_URL} path`
-#export PORT2=$((PORT + 1))
+export DATABASE_URL_SCHEME=`parse_uri ${DATABASE_URL} scheme`
+export DATABASE_URL_USERNAME=`parse_uri ${DATABASE_URL} username`
+export DATABASE_URL_PASSWORD=`parse_uri ${DATABASE_URL} password`
+export DATABASE_URL_HOST=`parse_uri ${DATABASE_URL} host`
+export DATABASE_URL_PATH=`parse_uri ${DATABASE_URL} path`
+export PORT2=$((PORT + 1))
 
 #echo "Binding to $PORT"
 #echo "alive" | nc -w 10 -l -p $PORT
