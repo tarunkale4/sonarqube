@@ -58,11 +58,11 @@ install_sonarqube() {
   jar xvf ${CACHE_DIR}/${SONAR_DIST_ZIP} >/dev/null
   mv ${SONAR_DIST} ${SONAR_HOME}
 
-rm ${SONAR_DIST}/extensions/plugins/sonar-csharp-plugin-*.jar
-rm ${SONAR_DIST}/extensions/plugins/sonar-flex-plugin-*.jar
-rm ${SONAR_DIST}/extensions/plugins/sonar-php-plugin-*.jar
-rm ${SONAR_DIST}/extensions/plugins/sonar-python-plugin-*.jar
-rm ${SONAR_DIST}/extensions/plugins/sonar-scm-svn-plugin-*.jar
+#rm ${SONAR_DIST}/extensions/plugins/sonar-csharp-plugin-*.jar
+#rm ${SONAR_DIST}/extensions/plugins/sonar-flex-plugin-*.jar
+#rm ${SONAR_DIST}/extensions/plugins/sonar-php-plugin-*.jar
+#rm ${SONAR_DIST}/extensions/plugins/sonar-python-plugin-*.jar
+#rm ${SONAR_DIST}/extensions/plugins/sonar-scm-svn-plugin-*.jar
 
   # Copy vendored properties into Sonar
   cp ${BP_DIR}/etc/sonar.properties ${SONAR_HOME}/conf
