@@ -28,6 +28,7 @@ parse_uri(){
 #echo "Binding to $PORT"
 #echo "alive" | nc -w 10 -l -p $PORT
 #echo "Released bind to $PORT"
+echo "server-port=${PORT}" >> $CONF_PATH
 
 touch /app/sonarqube/logs/es.log
 touch /app/sonarqube/logs/ce.log
