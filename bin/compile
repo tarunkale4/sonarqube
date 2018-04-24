@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+# bin/compile <build-dir> <cache-dir>
+
+# fail fast
+set -e
+
+# parse args
+BUILD_DIR=$1
+CACHE_DIR=$2
+
+BP_DIR=`cd $(dirname $0); cd ..; pwd`
+
+SONAR_VERSION="6.7.1"
+CODESCAN_VERSION="1.2.3"
+ANT_VERSION="1.9.9"
+MAVEN_VERSION=""
+SONAR_HOME=${BUILD_DIR}/sonarqube
+
+install_jdk() {
+  local install_dir=${1}
+
+  JVM_COMMON_BUILDPACK=${JVM_COMMON_BUILDPACK:-https://codon-buildpacks.s3.amazonaws.com/buildpacks/heroku/jvm-common.tgz}
+  mkdir -p /tmp/jvm-common
+  curl --retry 3 --silent --location $JVM_COMMON_BUILDPACK | tar xzm -C /tmp/jvm-common --strip-components=1
+  source /tmp/jvm-common/bin/util
+  source /tmp/jvm-common/bin/java
+  source /tmp/jvm-common/opt/jdbc.sh
+
+  install_java_with_overlay ${install_dir}
+}
+
+install_sonarqube() {
+  local BUILD_DIR=${1}
+  local CACHE_DIR=${2}
+
+  SONAR_DIST="sonarqube-${SONAR_VERSION}"
+  SONAR_DIST_ZIP="${SONAR_DIST}.zip"
+
+  if [ ! -d ${CACHE_DIR} ]; then
+    mkdir -p ${CACHE_DIR}
+  fi
+
+  # Download Sonar if not in cache
+  if [ ! -f ${CACHE_DIR}/${SONAR_DIST_ZIP} ]; then
+    #SONAR_URL="http://downloads.code-scan.com/bundler/${SONAR_DIST_ZIP}"
+    SONAR_URL="https://sonarsource.bintray.com/Distribution/sonarqube/${SONAR_DIST_ZIP}"
+    echo -n "-----> Downloading ${SONAR_DIST}....."
+    curl --silent --location ${SONAR_URL} > ${CACHE_DIR}/${SONAR_DIST_ZIP}
+    echo " done"
+  fi
+
+  echo -n "-----> Installing ${SONAR_DIST}...."
+
+  # Unzip Sonar
+  # `unzip` command is not available.
+  cd ${BUILD_DIR}
+
+  jar xvf ${CACHE_DIR}/${SONAR_DIST_ZIP} >/dev/null
+  mv ${SONAR_DIST} ${SONAR_HOME}
+
+rm ${SONAR_DIST}/extensions/plugins/sonar-csharp-plugin-*.jar
+rm ${SONAR_DIST}/extensions/plugins/sonar-flex-plugin-*.jar
+rm ${SONAR_DIST}/extensions/plugins/sonar-php-plugin-*.jar
+rm ${SONAR_DIST}/extensions/plugins/sonar-python-plugin-*.jar
+rm ${SONAR_DIST}/extensions/plugins/sonar-scm-svn-plugin-*.jar
+
+  # Copy vendored properties into Sonar
+  cp ${BP_DIR}/etc/sonar.properties ${SONAR_HOME}/conf
+
+  #make wrapper writable
+  chmod -R +x $SONAR_HOME/bin/linux-x86-64/./wrapper $SONAR_HOME/bin/linux-x86-64/sonar.sh $SONAR_HOME/elasticsearch/bin/elasticsearch
+
+  # Copy the vendored boot script for launching the WAR
+  cp ${BP_DIR}/opt/boot.sh ${SONAR_HOME}/
+  chmod +x ${SONAR_HOME}/boot.sh
+
+  if [ "${PIPESTATUS[*]}" != "0" ]; then
+    echo " !     Failed to install Sonar"
+    exit 1
+  fi
+  echo " done"
+}
+
+
+install_codescan() {
+  local BUILD_DIR=${1}
+  local CACHE_DIR=${2}
+
+  CODESCAN_DIST="sonar-bitbucket-plugin-${CODESCAN_VERSION}"
+  CODESCAN_DIST_ZIP="${CODESCAN_DIST}.jar"
+  CODESCAN_HOME=${BUILD_DIR}/sonar-bitbucket-plugin
+
+  if [ ! -d ${CACHE_DIR} ]; then
+    mkdir -p ${CACHE_DIR}
+  fi
+
+  # Download CodeScan if not in cache
+  if [ ! -f ${CACHE_DIR}/${CODESCAN_DIST_ZIP} ]; then
+    #CODESCAN_URL="http://downloads.code-scan.com/${CODESCAN_DIST_ZIP}"
+    #CODESCAN_URL="https://github.com/mibexsoftware/sonar-bitbucket-plugin/archive/v${CODESCAN_VERSION}.zip"
+    CODESCAN_URL="https://bitbucket.org/vseveryn/heroku-buildpack-sonarqube-bitbucket/downloads/sonar-bitbucket-plugin-1.2.3.jar"
+    echo -n "-----> Downloading ${CODESCAN_DIST}....."
+    curl --silent --location ${CODESCAN_URL} > ${CACHE_DIR}/${CODESCAN_DIST_ZIP}
+    echo " done"
+  fi
+
+  echo -n "-----> Installing ${CODESCAN_DIST}...."
+
+  cp $CACHE_DIR/$CODESCAN_DIST_ZIP $SONAR_HOME/extensions/plugins
+
+  echo " done"
+}
+
+install_ant() {
+  local BUILD_DIR=${1}
+  local CACHE_DIR=${2}
+
+  ANT_DIST="apache-ant-${ANT_VERSION}"
+  ANT_DIST_ZIP="${ANT_DIST}-bin.zip"
+  ANT_HOME=${BUILD_DIR}/ant
+
+  if [ ! -d ${CACHE_DIR} ]; then
+    mkdir -p ${CACHE_DIR}
+  fi
+
+  # Download Ant if not in cache
+  if [ ! -f ${CACHE_DIR}/${ANT_DIST_ZIP} ]; then
+    ANT_URL="http://downloads.code-scan.com/bundler/${ANT_DIST_ZIP}"
+    echo -n "-----> Downloading ${ANT_DIST}....."
+    curl --silent --location ${ANT_URL} > ${CACHE_DIR}/${ANT_DIST_ZIP}
+    echo " done"
+  fi
+
+  echo -n "-----> Installing ${ANT_DIST}...."
+
+  # Unzip Ant
+  # `unzip` command is not available.
+  cd ${BUILD_DIR}
+
+  jar xvf ${CACHE_DIR}/${ANT_DIST_ZIP} >/dev/null
+  mv ${ANT_DIST} ${ANT_HOME}
+
+  if [ "${PIPESTATUS[*]}" != "0" ]; then
+    echo " !     Failed to install Sonar"
+    exit 1
+  fi
+  echo " done"
+}
+
+install_jdk ${BUILD_DIR}
+install_sonarqube ${BUILD_DIR} ${CACHE_DIR}
+install_codescan ${BUILD_DIR} ${CACHE_DIR}
+#install_ant ${BUILD_DIR} ${CACHE_DIR}
+
+
